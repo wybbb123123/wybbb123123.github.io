@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RustChain Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --ink: #1c241f;
+      --muted: #62706a;
+      --line: #d8ded7;
+      --green: #2f7d4f;
+      --gold: #a56a1e;
+      --red: #b64545;
+      --blue: #326fa8;
+      --shadow: 0 16px 40px rgba(26, 38, 31, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      padding: 18px 0 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      max-width: 720px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button, a.button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      min-height: 42px;
+    }
+
+    button:hover, a.button:hover { border-color: var(--green); }
+
+    .status-line {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 18px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: inline-block;
+    }
+
+    .dot.ok { background: var(--green); }
+    .dot.bad { background: var(--red); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .metric, .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      min-height: 148px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: clamp(26px, 3vw, 38px);
+      font-weight: 800;
+      line-height: 1.05;
+      margin-top: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-foot {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      margin-top: 12px;
+    }
+
+    .wide {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .section {
+      padding: 18px;
+      min-width: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 1fr) 3fr 42px;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .track {
+      height: 10px;
+      background: #edf0ed;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      width: 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      background: #f9faf8;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .note {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+      margin: 12px 0 0;
+    }
+
+    .error {
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    @media (max-width: 920px) {
+      header { flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .wide { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 1fr; }
+      .metric { min-height: 124px; }
+      button, a.button { width: 100%; }
+      .actions { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>RustChain Live Dashboard</h1>
+        <p class="subtitle">Live chain, miner, supply, and transaction indicators from public RustChain endpoints. The page refreshes automatically and shows data-source fallbacks when an endpoint is unavailable.</p>
+      </div>
+      <div class="actions">
+        <button id="refreshButton" type="button">Refresh</button>
+        <a class="button" href="https://rustchain.org/explorer/" target="_blank" rel="noreferrer">Explorer</a>
+      </div>
+    </header>
+
+    <div class="status-line">
+      <span id="statusDot" class="dot"></span>
+      <span id="statusText">Loading live data...</span>
+      <span id="updatedAt"></span>
+    </div>
+
+    <section class="grid" aria-label="Core metrics">
+      <article class="metric">
+        <div>
+          <div class="metric-label">Current Epoch</div>
+          <div id="epochValue" class="metric-value">--</div>
+        </div>
+        <div id="slotValue" class="metric-foot">Slot --</div>
+      </article>
+      <article class="metric">
+        <div>
+          <div class="metric-label">Miner Count</div>
+          <div id="minerValue" class="metric-value">--</div>
+        </div>
+        <div id="minerFoot" class="metric-foot">From /api/miners</div>
+      </article>
+      <article class="metric">
+        <div>
+          <div class="metric-label">Supply</div>
+          <div id="supplyValue" class="metric-value">--</div>
+        </div>
+        <div class="metric-foot">RTC total supply from /epoch</div>
+      </article>
+      <article class="metric">
+        <div>
+          <div class="metric-label">Transactions</div>
+          <div id="txValue" class="metric-value">--</div>
+        </div>
+        <div id="txFoot" class="metric-foot">Loading transaction source...</div>
+      </article>
+    </section>
+
+    <section class="wide">
+      <article class="section">
+        <h2>Miner Families</h2>
+        <div id="familyBars" class="bars"></div>
+      </article>
+      <article class="section">
+        <h2>Node Health</h2>
+        <div class="metric-foot">Version</div>
+        <div id="versionValue" class="metric-value">--</div>
+        <p id="healthDetails" class="note"></p>
+      </article>
+    </section>
+
+    <section class="section" style="margin-top:14px">
+      <h2>Recent Miners</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Miner</th>
+              <th>Family</th>
+              <th>Architecture</th>
+              <th>Multiplier</th>
+              <th>Last Attest</th>
+            </tr>
+          </thead>
+          <tbody id="minerRows">
+            <tr><td colspan="5">Loading miners...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Auto-refresh interval: 60 seconds. API base: https://rustchain.org</p>
+    </section>
+  </main>
+
+  <script>
+    const API = "https://rustchain.org";
+    const PAYOUT_WALLET = "RTC0745461691b63f159c44386ae1b8554b6b515e6c";
+    const refreshMs = 60000;
+
+    const el = (id) => document.getElementById(id);
+
+    function fmtNumber(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+      return Number(value).toLocaleString(undefined, { maximumFractionDigits: 6 });
+    }
+
+    function fmtAge(ts) {
+      if (!ts) return "--";
+      const seconds = Math.max(0, Math.round(Date.now() / 1000 - Number(ts)));
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`;
+      return `${Math.round(seconds / 86400)}d ago`;
+    }
+
+    async function getJson(path) {
+      const response = await fetch(`${API}${path}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+      return response.json();
+    }
+
+    function renderFamilies(miners) {
+      const counts = miners.reduce((acc, miner) => {
+        const key = miner.device_family || "Unknown";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const max = Math.max(1, ...entries.map((entry) => entry[1]));
+      el("familyBars").innerHTML = entries.map(([family, count]) => `
+        <div class="bar-row">
+          <div>${family}</div>
+          <div class="track"><div class="fill" style="width:${(count / max) * 100}%"></div></div>
+          <div>${count}</div>
+        </div>
+      `).join("") || "<p class=\"note\">No miner family data returned.</p>";
+    }
+
+    function renderMiners(miners) {
+      const rows = miners.slice(0, 10).map((miner) => `
+        <tr>
+          <td><code>${miner.miner || "--"}</code></td>
+          <td>${miner.device_family || "--"}</td>
+          <td>${miner.device_arch || "--"}</td>
+          <td>${fmtNumber(miner.antiquity_multiplier)}</td>
+          <td>${fmtAge(miner.last_attest)}</td>
+        </tr>
+      `).join("");
+      el("minerRows").innerHTML = rows || "<tr><td colspan=\"5\">No miners returned.</td></tr>";
+    }
+
+    async function loadTransactions() {
+      try {
+        const globalTx = await getJson("/api/transactions?limit=25");
+        const total = globalTx.total ?? globalTx.tx_count ?? (globalTx.transactions || []).length;
+        el("txValue").textContent = fmtNumber(total);
+        el("txFoot").textContent = "Global transactions from /api/transactions";
+      } catch (error) {
+        const history = await getJson(`/wallet/history?miner_id=${encodeURIComponent(PAYOUT_WALLET)}`);
+        el("txValue").textContent = fmtNumber(history.total ?? (history.transactions || []).length);
+        el("txFoot").textContent = "Wallet history fallback; global transaction endpoint unavailable";
+      }
+    }
+
+    async function refresh() {
+      el("statusText").textContent = "Refreshing live data...";
+      el("statusDot").className = "dot";
+      const [epoch, minersData, health] = await Promise.all([
+        getJson("/epoch"),
+        getJson("/api/miners"),
+        getJson("/health")
+      ]);
+
+      const miners = minersData.miners || [];
+      el("epochValue").textContent = fmtNumber(epoch.epoch);
+      el("slotValue").textContent = `Slot ${fmtNumber(epoch.slot)} - ${fmtNumber(epoch.blocks_per_epoch)} blocks/epoch`;
+      el("minerValue").textContent = fmtNumber(epoch.enrolled_miners ?? minersData.pagination?.total ?? miners.length);
+      el("minerFoot").textContent = `${fmtNumber(miners.length)} miners returned in live page`;
+      el("supplyValue").textContent = fmtNumber(epoch.total_supply_rtc);
+      el("versionValue").textContent = health.version || "--";
+      el("healthDetails").textContent = `Node ok: ${health.ok === true ? "yes" : "no"} - DB read/write: ${health.db_rw === true ? "yes" : "no"} - tip age slots: ${fmtNumber(health.tip_age_slots)} - uptime: ${fmtNumber(Math.round((health.uptime_s || 0) / 3600))} hours`;
+      renderFamilies(miners);
+      renderMiners(miners);
+      await loadTransactions();
+
+      el("statusDot").className = health.ok === true ? "dot ok" : "dot bad";
+      el("statusText").textContent = health.ok === true ? "Live API healthy" : "Live API returned degraded health";
+      el("updatedAt").textContent = `Updated ${new Date().toLocaleString()}`;
+    }
+
+    async function guardedRefresh() {
+      try {
+        await refresh();
+      } catch (error) {
+        el("statusDot").className = "dot bad";
+        el("statusText").innerHTML = `<span class="error">Refresh failed:</span> ${error.message}`;
+        el("updatedAt").textContent = `Last attempt ${new Date().toLocaleString()}`;
+      }
+    }
+
+    el("refreshButton").addEventListener("click", guardedRefresh);
+    guardedRefresh();
+    setInterval(guardedRefresh, refreshMs);
+  </script>
+</body>
+</html>
